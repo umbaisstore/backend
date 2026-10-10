@@ -297,4 +297,42 @@ router.put('/profile', protectUser, async (req, res) => {
   }
 });
 
+// ==========================================
+// 5. User Change Password
+// PUT /api/users/change-password
+// ==========================================
+router.put('/change-password', protectUser, async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Please provide both current password and new password' });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+    }
+
+    const user = await User.findById(req.user._id || req.user.id);
+    if (!user) {
+      return res.status(404).json({ error: 'User account not found' });
+    }
+
+    const isMatch = await user.comparePassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Current password is incorrect. Please try again.' });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'Password changed successfully! ✨'
+    });
+  } catch (err) {
+    console.error('[User Change Password Error]:', err);
+    res.status(500).json({ error: err.message || 'Failed to change password' });
+  }
+});
+
 export default router;
